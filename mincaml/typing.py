@@ -1,5 +1,5 @@
 from pyrsistent import pmap
-
+from . import logger
 from . import types
 
 
@@ -32,7 +32,7 @@ class TypingVisitor:
             # unify(e.typ, self.extenv[e.name])
             return self.extenv[e.name]
         else:
-            print(f"free variable {e.name} assumed as external.")
+            logger.warn(f"free variable {e.name} assumed as external.")
             t = types.Var()
             self.extenv[e.name] = t
             # e.typ = t  # 外部変数の型変数を代入(mincamlにはない挙動)
@@ -223,7 +223,7 @@ def deref_typ(t):
     elif types.is_array(t):
         return types.Array(deref_typ(t.elem))
     elif types.is_var(t) and t.ref is None:
-        print("uninstantiated type variable detected; assuming int.")
+        logger.warn("uninstantiated type variable detected; assuming int.")
         t.ref.contents = types.Int
         return types.Int
     elif types.is_var(t) and t.ref is not None:
@@ -242,6 +242,5 @@ def typing(e):
     try:
         unify(types.Unit, visitor.visit(pmap(), e))
     except UnifyError:
-        # raise ValueError("top level does not have type unit")
-        pass
+        raise ValueError("top level does not have type unit")
     deref_term(e)
