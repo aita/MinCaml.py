@@ -26,16 +26,13 @@ class TypingVisitor:
 
     def visit_Var(self, env, e):
         if e.name in env:
-            # unify(e.typ, env[e.name])
             return env[e.name]
         elif e.name in self.extenv:
-            # unify(e.typ, self.extenv[e.name])
             return self.extenv[e.name]
         else:
             logger.warn(f"free variable {e.name} assumed as external.")
             t = types.Var()
             self.extenv[e.name] = t
-            # e.typ = t  # 外部変数の型変数を代入(mincamlにはない挙動)
             return t
 
     def visit_UnaryExp(self, env, e):
@@ -79,7 +76,8 @@ class TypingVisitor:
             types.Fun(
                 [typ for _, typ in e.fundef.args],
                 self.visit(
-                    env.update({name: typ for name, typ in e.fundef.args}), e.fundef.exp
+                    env.update({name: typ for name, typ in e.fundef.args}),
+                    e.fundef.body,
                 ),
             ),
         )

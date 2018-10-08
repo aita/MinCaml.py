@@ -12,8 +12,6 @@ class Const:
 
 class Var:
     def __init__(self, name):
-        # NOTE: envから型を取得可能なので変数の方を保持しない
-        # self.typ = types.Var()
         self.name = name
 
     def children(self):
@@ -60,14 +58,14 @@ class LetRec:
 
 
 class FunDef:
-    def __init__(self, name, args, exp):
+    def __init__(self, name, args, body):
         self.typ = types.Var()
         self.name = name
         self.args = args
-        self.exp = exp
+        self.body = body
 
     def children(self):
-        return [self.args, self.exp]
+        return [self.body]
 
 
 class LetTuple:

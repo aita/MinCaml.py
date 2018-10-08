@@ -3,17 +3,7 @@ import ply.yacc as yacc
 
 from . import syntax
 from . import types
-
-
-tmp_cnt = 0
-
-
-def gen_tmp_id():
-    global tmp_cnt
-
-    id = f"%%tmp{tmp_cnt}"
-    tmp_cnt += 1
-    return id
+from .id import gen_tmp_id
 
 
 tokens = (
@@ -247,7 +237,7 @@ def p_array_put(p):
 
 def p_semicolon(p):
     "exp : exp SEMICOLON exp"
-    p[0] = syntax.Let(types.Unit, gen_tmp_id(), p[1], p[3])
+    p[0] = syntax.Let(types.Unit, gen_tmp_id(types.Unit), p[1], p[3])
 
 
 def p_array_create(p):
