@@ -38,13 +38,13 @@ class TypingVisitor:
     def visit_UnaryExp(self, env, e):
         op = e.op
         if op == "not":
-            unify(types.Bool, self.visit(e.arg))
+            unify(types.Bool, self.visit(env, e.arg))
             return types.Bool
         elif op == "-":
-            unify(types.Int, self.visit(e.arg))
+            unify(types.Int, self.visit(env, e.arg))
             return types.Int
         elif op == "-.":
-            unify(types.Float, self.visit(e.arg))
+            unify(types.Float, self.visit(env, e.arg))
             return types.Float
         else:
             raise ValueError(f"unknown unary operator: {op}")
@@ -99,7 +99,7 @@ class TypingVisitor:
 
     def visit_Array(self, env, e):
         unify(self.visit(env, e.len), types.Int)
-        return types.Array(self.visit(env.e.init))
+        return types.Array(self.visit(env, e.init))
 
     def visit_Get(self, env, e):
         t = types.Var()
