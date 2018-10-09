@@ -85,15 +85,14 @@ def t_BOOL(t):
     return t
 
 
-def t_INT(t):
-    r"\d+"
-    t.value = int(t.value)
-    return t
-
-
-def t_FLOAT(t):
+def t_NUMBER(t):
     r"\d+(\.\d*)?([eE][+-]?\d+)?"
-    t.value = float(t.value)
+    try:
+        t.value = int(t.value)
+        t.type = "INT"
+    except ValueError:
+        t.value = float(t.value)
+        t.type = "FLOAT"
     return t
 
 
@@ -184,7 +183,11 @@ def p_not(p):
 
 def p_uminus(p):
     "exp : MINUS exp %prec prec_unary_minus"
-    p[0] = syntax.UnaryExp("-", p[2])
+    if types.is_float(p[2].typ):
+        p[2].value = -p[2].value
+        p[0] = p[2]
+    else:
+        p[0] = syntax.UnaryExp("-", p[2])
 
 
 def p_binary_exp(p):
