@@ -8,12 +8,8 @@ from .id import gen_tmp_id
 class IR(list):
     "K正規系の中間表現クラス"
 
-    def __init__(self, name, *args):
-        self.name = name
+    def __init__(self, *args):
         super().__init__(args)
-
-    def __eq__(self, other):
-        return self.name == other.name and self.args == other.args
 
 
 class FunDef:
@@ -86,22 +82,21 @@ class KNormalizeVisitor:
 
         e1, t1 = self.visit(env, e.left)
         e2, t2 = self.visit(env, e.right)
-
-        if isinstance(e1, syntax.Var):
-            left = IR(op, e1.name)
+        if isinstance(e1, syntax.Var) and isinstance(e2, syntax.Var):
+            return IR(op, e1.name, e2.name), ret_typ
+        elif isinstance(e1, syntax.Var):
+            x = gen_tmp_id(t2)
+            e3 = IR(op, e1.name, x)
+            return IR("Let", (x, t2), e2, e3), ret_typ
+        elif isinstance(e2, syntax.Var):
+            x = gen_tmp_id(t1)
+            e3 = IR(op, x, e2.name)
+            return IR("Let", (x, t1), e1, e3), ret_typ
         else:
             x = gen_tmp_id(t1)
-            e3 = IR(op, x)
-            left = IR("Let", (x, t1), e1, e3)
-
-        if isinstance(e2, syntax.Var):
-            right = IR(op, e2.name)
-        else:
-            x = gen_tmp_id(t2)
-            e4 = IR(op, x)
-            right = IR("Let", (x, t2), e2, e4)
-
-        return IR(op)
+            y = gen_tmp_id(t2)
+            e3 = IR(op, x, y)
+            return IR("Let", (x, t1), e1, IR("Let", (y, t2), e2, e3)), ret_typ
 
 
 def normalize(e):
