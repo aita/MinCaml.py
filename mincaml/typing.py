@@ -235,8 +235,8 @@ def deref_term(e):
     DerefVisitor().visit(e)
 
 
-def typing(e):
-    visitor = TypingVisitor({})
+def typing(e, extenv):
+    visitor = TypingVisitor(extenv)
     try:
         unify(types.Unit, visitor.visit(pmap(), e))
     except UnifyError:

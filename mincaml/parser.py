@@ -107,6 +107,11 @@ def t_newline(t):
 t_ignore = " \t\r"
 
 
+def t_comment(t):
+    r"\(\*(.|\n)*?\*\)"
+    t.lexer.lineno += t.value.count("\n")
+
+
 # Error handling rule
 def t_error(t):
     print("Illegal character '%s'" % t.value[0])
@@ -291,7 +296,7 @@ def p_pat(p):
 
 
 def p_error(p):
-    print(f"syntax error at '{p.value}'")
+    print(f"{p.lineno}: syntax error at '{p.value}'")
 
 
 # Build the lexer and parser

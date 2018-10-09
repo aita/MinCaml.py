@@ -23,6 +23,9 @@ class FunDef:
 class KNormalizeVisitor:
     "K正規化を行うVisitor"
 
+    def __init__(self, extenv):
+        self.extenv = extenv
+
     def visit(self, env, e):
         method = "visit_" + e.__class__.__name__
         visitor = getattr(self, method)
@@ -98,6 +101,15 @@ class KNormalizeVisitor:
             e3 = IR(op, x, y)
             return IR("Let", (x, t1), e1, IR("Let", (y, t2), e2, e3)), ret_typ
 
+    def visit_Var(self, env, e):
+        if e.name in env:
+            return IR("Var", e.name), env[e.name]
+        if e.name in self.extenv:
+            t = self.extenv[e.name]
+            if types.is_array(t):
+                return IR("ExtArray", e.name), t
+        raise ValueError(f"external variable {e.name} does not have an array type")
 
-def normalize(e):
-    return KNormalizeVisitor().visit(pmap(), e)
+
+def normalize(e, extenv):
+    return KNormalizeVisitor(extenv).visit(pmap(), e)
