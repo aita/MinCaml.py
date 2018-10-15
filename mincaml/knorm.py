@@ -5,14 +5,11 @@ from . import syntax
 from .id import gen_tmp_id
 
 
-class IR(list):
-    "K正規系の中間表現クラス"
-
-    def __init__(self, *args):
-        super().__init__(args)
+def IR(*args):
+    return args
 
 
-def ir(op, *options):
+def IR_factory(op, *options):
     def _ir(*args):
         return IR(op, *options, *args)
 
@@ -66,7 +63,7 @@ class KNormalizeVisitor:
         else:
             raise ValueError(f"unknown operator '{e.op}'")
 
-        return self.insert_let(env, ir(op), [self.visit(env, e.arg)], typ)
+        return self.insert_let(env, IR_factory(op), [self.visit(env, e.arg)], typ)
         e1, t1 = self.visit(env, e.arg)
         if isinstance(e1, syntax.Var):
             return IR(op, e1.name), typ
@@ -100,7 +97,10 @@ class KNormalizeVisitor:
             raise ValueError(f"unknown operator '{e.op}'")
 
         return self.insert_let(
-            env, ir(op), [self.visit(env, e.left), self.visit(env, e.right)], typ
+            env,
+            IR_factory(op),
+            [self.visit(env, e.left), self.visit(env, e.right)],
+            typ,
         )
 
     def visit_If(self, env, e):
@@ -117,7 +117,10 @@ class KNormalizeVisitor:
                 raise ValueError(f"unknown operator: {e.cond.op}")
 
             return self.insert_let(
-                env, ir(op), [self.visit(env, e.then), self.visit(env, e.else_)], typ
+                env,
+                IR_factory(op),
+                [self.visit(env, e.then), self.visit(env, e.else_)],
+                typ,
             )
 
         return self.visit(
@@ -145,7 +148,9 @@ class KNormalizeVisitor:
 
     def visit_Tuple(self, env, e):
         xs = [self.visit(env, e) for e in e.elems]
-        return self.insert_let(env, ir("Tuple"), xs, types.Tuple([t for _, t in xs]))
+        return self.insert_let(
+            env, lambda *xs: IR("Tuple", xs), xs, types.Tuple([t for _, t in xs])
+        )
 
     def visit_LetTuple(self, env, e):
         e1, t1 = self.visit(env, e.bound)
@@ -171,7 +176,10 @@ class KNormalizeVisitor:
         e2, t2 = self.visit(env, e.init)
         ctor = "create_float_array" if types.is_float(t2) else "create_array"
         return self.insert_let(
-            env, ir("ExtFunApp", ctor), [(e1, t1), (e2, t2)], types.Array(t2)
+            env,
+            lambda *xs: IR("ExtFunApp", ctor, xs),
+            [(e1, t1), (e2, t2)],
+            types.Array(t2),
         )
 
     def visit_App(self, env, e):
@@ -187,7 +195,7 @@ class KNormalizeVisitor:
                     letenv[x] = (e1, t1)
                     xs.append(x)
 
-            ir = IR(op, name, *xs)
+            ir = IR(op, name, xs)
             if len(letenv) > 0:
                 return IR("Let", letenv, ir), t
             else:
@@ -214,13 +222,13 @@ class KNormalizeVisitor:
         if not types.is_array(t1):
             raise ValueError(f"cannot get from {t1}")
         return self.insert_let(
-            env, ir("Get"), [(e1, t1), self.visit(env, e.index)], t1.elem
+            env, IR_factory("Get"), [(e1, t1), self.visit(env, e.index)], t1.elem
         )
 
     def visit_Put(self, env, e):
         return self.insert_let(
             env,
-            ir("Put"),
+            IR_factory("Put"),
             [
                 self.visit(env, e.array),
                 self.visit(env, e.index),

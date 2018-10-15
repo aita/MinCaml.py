@@ -88,10 +88,10 @@ class AlphaVisitor:
         ]
 
     def visit_App(self, env, ir):
-        return [ir[0], env[ir[1]]] + [env[arg] for arg in ir[2:]]
+        return [ir[0], env[ir[1]], [env[arg] for arg in ir[2]]]
 
     def visit_Tuple(self, env, ir):
-        return [ir[0]] + [env[name] for name in ir[1:]]
+        return [ir[0], [env[name] for name in ir[1]]]
 
     def visit_LetTuple(self, env, ir):
         new_env = env.update({name: gen_id(name) for name, _ in ir[1]})
@@ -112,7 +112,7 @@ class AlphaVisitor:
         return ir
 
     def visit_ExtFunApp(self, env, ir):
-        return [ir[0], ir[1]] + [env[arg] for arg in ir[2:]]
+        return [ir[0], ir[1], [env[arg] for arg in ir[2]]]
 
 
 def conversion(e):
