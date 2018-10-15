@@ -21,6 +21,9 @@ class Premitive:
     def __str__(self):
         return self.name
 
+    def __repr__(self):
+        return f"<{self.name}>"
+
 
 class Array:
     def __init__(self, elem):
@@ -28,6 +31,9 @@ class Array:
 
     def __str__(self):
         return f"Array({self.elem})"
+
+    def __repr__(self):
+        return f"<Array({repr(self.elem)})>"
 
 
 class Tuple:
@@ -37,6 +43,9 @@ class Tuple:
     def __str__(self):
         return "Tuple({})".format(", ".join(str(t) for t in self.elem_types))
 
+    def __repr__(self):
+        return f"<Tuple({self.elems})>"
+
 
 class Fun:
     def __init__(self, args, ret):
@@ -45,6 +54,9 @@ class Fun:
 
     def __str__(self):
         return "Fun({} -> {})".format(", ".join(str(t) for t in self.args), self.ret)
+
+    def __repr__(self):
+        return f"<Fun({self.args} -> {repr(self.ret)})>"
 
 
 Unit = Premitive("Unit")

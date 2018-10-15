@@ -1,11 +1,11 @@
 from pyrsistent import pmap
 
-from .id import gen_id
+from . import logger
 from .knorm import FunDef
 from .util import find
 
 
-class AlphaVisitor:
+class BetaVisitor:
     def visit(self, env, e):
         method = "visit_" + e[0]
         visitor = getattr(self, method)
@@ -63,27 +63,36 @@ class AlphaVisitor:
         ]
 
     def visit_Let(self, env, e):
-        letenv = {name: gen_id(name) for name in e[1].keys()}
-        e1 = {letenv[name]: (self.visit(env, e_), t) for name, (e_, t) in e[1].items()}
-        e2 = self.visit(env.update(letenv), e[2])
-        return [e[0], e1, e2]
+        letenv = e[1]
+        new_env = env
+        new_letenv = {}
+        for name, (e1, t) in letenv.items():
+            e2 = self.visit(env, e1)
+            if e2[0] == "Var":
+                new_name = e2[1]
+                logger.info(f"beta-reduction {name} = {new_name}.")
+                new_env = new_env.set(name, new_name)
+            else:
+                new_letenv[name] = (e2, t)
+        if len(new_letenv) > 0:
+            return [e[0], new_letenv, self.visit(new_env, e[2])]
+        else:
+            return self.visit(new_env, e[2])
 
     def visit_Var(self, env, e):
         return [e[0], find(env, e[1])]
 
     def visit_LetRec(self, env, e):
         fundef = e[1]
-        new_env1 = env.set(fundef.name, gen_id(fundef.name))
-        new_env2 = new_env1.update({name: gen_id(name) for name, _ in fundef.args})
         return [
             e[0],
             FunDef(
                 typ=fundef.typ,
-                name=new_env1[fundef.name],
-                args=[(new_env2[name], t) for name, t in fundef.args],
-                body=self.visit(new_env2, fundef.body),
+                name=fundef.name,
+                args=fundef.args,
+                body=self.visit(env, fundef.body),
             ),
-            self.visit(new_env1, e[2]),
+            self.visit(env, e[2]),
         ]
 
     def visit_App(self, env, e):
@@ -93,13 +102,7 @@ class AlphaVisitor:
         return [e[0], [env[name] for name in e[1]]]
 
     def visit_LetTuple(self, env, e):
-        new_env = env.update({name: gen_id(name) for name, _ in e[1]})
-        return [
-            e[0],
-            [(new_env[name], t) for name, t in e[1]],
-            find(env, e[2]),
-            self.visit(new_env, e[3]),
-        ]
+        return [e[0], e[1], find(env, e[2]), self.visit(env, e[3])]
 
     def visit_Get(self, env, e):
         return [e[0], find(env, e[1]), find(env, e[2])]
@@ -114,5 +117,5 @@ class AlphaVisitor:
         return [e[0], e[1], [find(env, arg) for arg in e[2]]]
 
 
-def conversion(e):
-    return AlphaVisitor().visit(pmap(), e)
+def reduction(e):
+    return BetaVisitor().visit(pmap(), e)

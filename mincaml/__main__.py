@@ -8,6 +8,7 @@ from . import parser
 from . import typing
 from . import knorm
 from . import alpha
+from . import beta
 
 handler = logging.StreamHandler(sys.stderr)
 # formatter = logging.Formatter("%(levelname)s: %(message)s")
@@ -27,9 +28,11 @@ def main():
     extenv = {}
     e = parser.parser.parse(input)
     typing.typing(e, extenv)
-    ir, _ = knorm.normalize(e, extenv)
-    ir = alpha.conversion(ir)
-    pprint.pprint(ir)
+    kform, _ = knorm.normalize(e, extenv)
+    pipeline = [alpha.conversion, beta.reduction]
+    for f in pipeline:
+        kform = f(kform)
+    pprint.pprint(kform)
 
 
 if __name__ == "__main__":
