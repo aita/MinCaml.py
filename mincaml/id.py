@@ -10,7 +10,6 @@ def _inc():
 
 def reset():
     global tmp_cnt
-
     tmp_cnt = 0
 
 

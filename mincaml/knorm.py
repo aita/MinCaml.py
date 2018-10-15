@@ -10,9 +10,12 @@ def IR(*args):
     return args
 
 
-def IR_factory(op, *options):
+def IR_factory(op, *options, flat=True):
     def _ir(*args):
-        return IR(op, *options, *args)
+        if flat:
+            return IR(op, *options, *args)
+        else:
+            return IR(op, *options, args)
 
     return _ir
 
@@ -59,7 +62,7 @@ class KNormalizeVisitor:
         else:
             raise ValueError(f"unknown operator '{e.op}'")
 
-        return self.insert_let(env, IR_factory(op), [self.visit(env, e.arg)], typ)
+        return self.insert_let(env, IR_factory(op), [self.visit(env, e.arg)]), typ
 
     def visit_BinaryExp(self, env, e):
         if e.op in ("=", "<="):
@@ -71,25 +74,25 @@ class KNormalizeVisitor:
             )
 
         if e.op == "+":
-            op, typ = "Add", types.Int
+            op, t = "Add", types.Int
         elif e.op == "-":
-            op, typ = "Sub", types.Int
+            op, t = "Sub", types.Int
         elif e.op == "+.":
-            op, typ = "FAdd", types.Float
+            op, t = "FAdd", types.Float
         elif e.op == "-.":
-            op, typ = "FSub", types.Float
+            op, t = "FSub", types.Float
         elif e.op == "*.":
-            op, typ = "FMul", types.Float
+            op, t = "FMul", types.Float
         elif e.op == "/.":
-            op, typ = "FDiv", types.Float
+            op, t = "FDiv", types.Float
         else:
             raise ValueError(f"unknown operator '{e.op}'")
 
-        return self.insert_let(
-            env,
-            IR_factory(op),
-            [self.visit(env, e.left), self.visit(env, e.right)],
-            typ,
+        return (
+            self.insert_let(
+                env, IR_factory(op), [self.visit(env, e.left), self.visit(env, e.right)]
+            ),
+            t,
         )
 
     def visit_If(self, env, e):
@@ -107,10 +110,12 @@ class KNormalizeVisitor:
 
             e3, t3 = self.visit(env, e.then)
             e4, t4 = self.visit(env, e.else_)
-            return self.insert_let(
-                env,
-                lambda x, y: IR(op, x, y, e3, e4),
-                [self.visit(env, e.cond.left), self.visit(env, e.cond.right)],
+            return (
+                self.insert_let(
+                    env,
+                    lambda x, y: IR(op, x, y, e3, e4),
+                    [self.visit(env, e.cond.left), self.visit(env, e.cond.right)],
+                ),
                 t3,
             )
 
@@ -139,8 +144,9 @@ class KNormalizeVisitor:
 
     def visit_Tuple(self, env, e):
         xs = [self.visit(env, e) for e in e.elems]
-        return self.insert_let(
-            env, lambda *xs: IR("Tuple", xs), xs, types.Tuple([t for _, t in xs])
+        return (
+            self.insert_let(env, IR_factory("Tuple", flat=False), xs),
+            types.Tuple([t for _, t in xs]),
         )
 
     def visit_LetTuple(self, env, e):
@@ -166,48 +172,41 @@ class KNormalizeVisitor:
         e1, t1 = self.visit(env, e.len)
         e2, t2 = self.visit(env, e.init)
         ctor = "create_float_array" if types.is_float(t2) else "create_array"
-        return self.insert_let(
-            env,
-            lambda *xs: IR("ExtFunApp", ctor, xs),
-            [(e1, t1), (e2, t2)],
+        return (
+            self.insert_let(
+                env, IR_factory("ExtFunApp", ctor, flat=False), [(e1, t1), (e2, t2)]
+            ),
             types.Array(t2),
         )
 
     def visit_App(self, env, e):
-        def _bind(op, name, args, t):
-            letenv = {}
-            xs = []
-            for arg in args:
-                e1, t1 = self.visit(env, arg)
-                if isinstance(e1, syntax.Var):
-                    xs.append(e1.name)
-                else:
-                    x = gen_tmp_id(t1)
-                    letenv[x] = (e1, t1)
-                    xs.append(x)
-
-            ir = IR(op, name, xs)
-            if len(letenv) > 0:
-                return IR("Let", letenv, ir), t
-            else:
-                return ir, t
-
         if isinstance(e.fun, syntax.Var) and e.fun.name not in env:
             if e.fun.name in self.extenv and types.is_fun(self.extenv[e.fun.name]):
-                return _bind(
-                    "ExtFunApp", e.fun.name, e.args, self.extenv[e.fun.name].ret
+                return (
+                    self.insert_let(
+                        env,
+                        IR_factory("ExtFunApp", e.fun.name, flat=False),
+                        [self.visit(env, arg) for arg in e.args],
+                    ),
+                    self.extenv[e.fun.name].ret,
                 )
             else:
                 raise ValueError(f"unknown external function: {e.fun.name}")
 
         e1, t1 = self.visit(env, e.fun)
         if types.is_fun(t1):
-            if isinstance(e1, syntax.Var):
-                return _bind("App", e1.name, e.args, t1.ret)
-            else:
-                x = gen_tmp_id(t1)
-                e2, t2 = _bind("App", x, e.args, t1.ret)
-                return IR("Let", {x: (e1, t1)}, e2), t2
+            return (
+                self.insert_let(
+                    env,
+                    lambda x: self.insert_let(
+                        env,
+                        IR_factory("App", x, flat=False),
+                        [self.visit(env, arg) for arg in e.args],
+                    ),
+                    [(e1, t1)],
+                ),
+                t1.ret,
+            )
         else:
             raise ValueError(f"unknown function type: {t1}")
 
@@ -215,23 +214,28 @@ class KNormalizeVisitor:
         e1, t1 = self.visit(env, e.array)
         if not types.is_array(t1):
             raise ValueError(f"cannot get from {t1}")
-        return self.insert_let(
-            env, IR_factory("Get"), [(e1, t1), self.visit(env, e.index)], t1.elem
+        return (
+            self.insert_let(
+                env, IR_factory("Get"), [(e1, t1), self.visit(env, e.index)]
+            ),
+            t1.elem,
         )
 
     def visit_Put(self, env, e):
-        return self.insert_let(
-            env,
-            IR_factory("Put"),
-            [
-                self.visit(env, e.array),
-                self.visit(env, e.index),
-                self.visit(env, e.exp),
-            ],
+        return (
+            self.insert_let(
+                env,
+                IR_factory("Put"),
+                [
+                    self.visit(env, e.array),
+                    self.visit(env, e.index),
+                    self.visit(env, e.exp),
+                ],
+            ),
             types.Unit,
         )
 
-    def insert_let(self, env, factory, exps, typ):
+    def insert_let(self, env, factory, exps):
         letenv = {}
         args = []
         for (e, t) in exps:
@@ -244,9 +248,9 @@ class KNormalizeVisitor:
 
         ir = factory(*args)
         if len(letenv) > 0:
-            return IR("Let", letenv, ir), typ
+            return IR("Let", letenv, ir)
         else:
-            return ir, typ
+            return ir
 
 
 def normalize(e, extenv):
