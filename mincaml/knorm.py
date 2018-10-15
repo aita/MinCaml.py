@@ -152,12 +152,10 @@ class KNormalizeVisitor:
     def visit_LetTuple(self, env, e):
         e1, t1 = self.visit(env, e.bound)
         e2, t2 = self.visit(env.update(dict(e.pat)), e.body)
-        if isinstance(e1, syntax.Var):
-            return IR("LetTuple", e.pat, e1, e2), t2
-        else:
-            x = gen_tmp_id(t1)
-            e3 = IR("LetTuple", e.pat, x, e2)
-            return IR("Let", {x: (e1, t1)}, e3), t2
+        return (
+            self.insert_let(env, IR_factory("LetTuple", e.pat), [(e1, t1), (e2, t2)]),
+            t2,
+        )
 
     def visit_Var(self, env, e):
         if e.name in env:
