@@ -80,6 +80,13 @@ def t_IDENT(t):
     return t
 
 
+def t_underscore(t):
+    r"_"
+    t.type = "IDENT"
+    t.value = gen_tmp_id(types.Unit)
+    return t
+
+
 def t_BOOL(t):
     r"true|false"
     t.value = bool(t.value)
