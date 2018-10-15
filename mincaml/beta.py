@@ -21,46 +21,46 @@ class BetaVisitor:
         return e
 
     def visit_Neg(self, env, e):
-        return [e[0], find(env, e[1])]
+        return (e[0], find(env, e[1]))
 
     def visit_Add(self, env, e):
-        return [e[0], find(env, e[1]), find(env, e[2])]
+        return (e[0], find(env, e[1]), find(env, e[2]))
 
     def visit_Sub(self, env, e):
-        return [e[0], find(env, e[1]), find(env, e[2])]
+        return (e[0], find(env, e[1]), find(env, e[2]))
 
     def visit_FNeg(self, env, e):
-        return [e[0], find(env, e[1])]
+        return (e[0], find(env, e[1]))
 
     def visit_FAdd(self, env, e):
-        return [e[0], find(env, e[1]), find(env, e[2])]
+        return (e[0], find(env, e[1]), find(env, e[2]))
 
     def visit_FSub(self, env, e):
-        return [e[0], find(env, e[1]), find(env, e[2])]
+        return (e[0], find(env, e[1]), find(env, e[2]))
 
     def visit_FMul(self, env, e):
-        return [e[0], find(env, e[1]), find(env, e[2])]
+        return (e[0], find(env, e[1]), find(env, e[2]))
 
     def visit_FDiv(self, env, e):
-        return [e[0], find(env, e[1]), find(env, e[2])]
+        return (e[0], find(env, e[1]), find(env, e[2]))
 
     def visit_IfEq(self, env, e):
-        return [
+        return (
             e[0],
             find(env, e[1]),
             find(env, e[2]),
             self.visit(env, e[3]),
             self.visit(env, e[4]),
-        ]
+        )
 
     def visit_IfLE(self, env, e):
-        return [
+        return (
             e[0],
             find(env, e[1]),
             find(env, e[2]),
             self.visit(env, e[3]),
             self.visit(env, e[4]),
-        ]
+        )
 
     def visit_Let(self, env, e):
         letenv = e[1]
@@ -75,16 +75,16 @@ class BetaVisitor:
             else:
                 new_letenv[name] = (e2, t)
         if len(new_letenv) > 0:
-            return [e[0], new_letenv, self.visit(new_env, e[2])]
+            return (e[0], new_letenv, self.visit(new_env, e[2]))
         else:
             return self.visit(new_env, e[2])
 
     def visit_Var(self, env, e):
-        return [e[0], find(env, e[1])]
+        return (e[0], find(env, e[1]))
 
     def visit_LetRec(self, env, e):
         fundef = e[1]
-        return [
+        return (
             e[0],
             FunDef(
                 typ=fundef.typ,
@@ -93,28 +93,28 @@ class BetaVisitor:
                 body=self.visit(env, fundef.body),
             ),
             self.visit(env, e[2]),
-        ]
+        )
 
     def visit_App(self, env, e):
-        return [e[0], find(env, e[1]), [find(env, arg) for arg in e[2]]]
+        return (e[0], find(env, e[1]), [find(env, arg) for arg in e[2]])
 
     def visit_Tuple(self, env, e):
-        return [e[0], [env[name] for name in e[1]]]
+        return (e[0], [env[name] for name in e[1]])
 
     def visit_LetTuple(self, env, e):
-        return [e[0], e[1], find(env, e[2]), self.visit(env, e[3])]
+        return (e[0], e[1], find(env, e[2]), self.visit(env, e[3]))
 
     def visit_Get(self, env, e):
-        return [e[0], find(env, e[1]), find(env, e[2])]
+        return (e[0], find(env, e[1]), find(env, e[2]))
 
     def visit_Put(self, env, e):
-        return [e[0], find(env, e[1]), find(env, e[2]), find(env, e[3])]
+        return (e[0], find(env, e[1]), find(env, e[2]), find(env, e[3]))
 
     def visit_ExtArray(self, env, e):
         return e
 
     def visit_ExtFunApp(self, env, e):
-        return [e[0], e[1], [find(env, arg) for arg in e[2]]]
+        return (e[0], e[1], [find(env, arg) for arg in e[2]])
 
 
 def reduction(e):
