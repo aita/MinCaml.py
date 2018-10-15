@@ -1,4 +1,5 @@
 from pyrsistent import pmap
+from collections import namedtuple
 
 from . import types
 from . import syntax
@@ -16,12 +17,7 @@ def IR_factory(op, *options):
     return _ir
 
 
-class FunDef:
-    def __init__(self, typ, name, args, body):
-        self.typ = typ
-        self.name = name
-        self.args = args
-        self.body = body
+FunDef = namedtuple("FunDef", "typ name args body")
 
 
 class KNormalizeVisitor:
@@ -187,7 +183,7 @@ class KNormalizeVisitor:
             if e.fun.name in self.extenv and types.is_fun(self.extenv[e.fun.name]):
                 return self.insert_let(
                     env,
-                    IR_factory("ExtFunApp", e.fun.name),
+                    lambda *xs: IR("ExtFunApp", e.fun.name, xs),
                     [self.visit(env, arg) for arg in e.args],
                     self.extenv[e.fun.name].ret,
                 )
@@ -200,7 +196,7 @@ class KNormalizeVisitor:
                 env,
                 lambda x: self.insert_let(
                     env,
-                    IR_factory("App", x),
+                    lambda *xs: IR("App", x, xs),
                     [self.visit(env, arg) for arg in e.args],
                     t1.ret,
                 ),
