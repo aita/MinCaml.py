@@ -63,12 +63,9 @@ class AlphaVisitor:
 
     def visit_Let(self, env, e):
         letenv = {name: gen_id(name) for name in e[1].keys()}
-        e_1 = (
-            {letenv[name]: (self.visit(env, e1), t) for name, (e1, t) in e[1].items()},
-        )
-        print("FFF", e[2])
-        e_2 = self.visit(env.update(letenv), e[2])
-        return [e[0], e_1, e_2]
+        e1 = {letenv[name]: (self.visit(env, e_), t) for name, (e_, t) in e[1].items()}
+        e2 = self.visit(env.update(letenv), e[2])
+        return [e[0], e1, e2]
 
     def visit_Var(self, env, e):
         return [e[0], env[e[1]]]
@@ -77,8 +74,6 @@ class AlphaVisitor:
         fundef = e[1]
         new_env1 = env.set(fundef.name, gen_id(fundef.name))
         new_env2 = new_env1.update({name: gen_id(name) for name, _ in fundef.args})
-        # print(fundef.body)
-        self.visit(new_env2, fundef.body)
         return [
             e[0],
             FunDef(

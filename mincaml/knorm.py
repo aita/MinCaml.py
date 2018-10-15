@@ -106,17 +106,19 @@ class KNormalizeVisitor:
 
         if isinstance(e.cond, syntax.BinaryExp):
             if e.cond.op == "<=":
-                op, typ = "IfLE", types.Int
+                op = "IfLE"
             elif e.cond.op == "=":
-                op, typ = "IfEq", types.Int
+                op = "IfEq"
             else:
                 raise ValueError(f"unknown operator: {e.cond.op}")
 
+            e3, t3 = self.visit(env, e.then)
+            e4, t4 = self.visit(env, e.else_)
             return self.insert_let(
                 env,
-                IR_factory(op),
-                [self.visit(env, e.then), self.visit(env, e.else_)],
-                typ,
+                lambda x, y: IR(op, x, y, e3, e4),
+                [self.visit(env, e.cond.left), self.visit(env, e.cond.right)],
+                t3,
             )
 
         return self.visit(
@@ -179,30 +181,40 @@ class KNormalizeVisitor:
         )
 
     def visit_App(self, env, e):
+        def _bind(op, name, args, t):
+            letenv = {}
+            xs = []
+            for arg in args:
+                e1, t1 = self.visit(env, arg)
+                if isinstance(e1, syntax.Var):
+                    xs.append(e1.name)
+                else:
+                    x = gen_tmp_id(t1)
+                    letenv[x] = (e1, t1)
+                    xs.append(x)
+
+            ir = IR(op, name, xs)
+            if len(letenv) > 0:
+                return IR("Let", letenv, ir), t
+            else:
+                return ir, t
+
         if isinstance(e.fun, syntax.Var) and e.fun.name not in env:
             if e.fun.name in self.extenv and types.is_fun(self.extenv[e.fun.name]):
-                return self.insert_let(
-                    env,
-                    lambda *xs: IR("ExtFunApp", e.fun.name, xs),
-                    [self.visit(env, arg) for arg in e.args],
-                    self.extenv[e.fun.name].ret,
+                return _bind(
+                    "ExtFunApp", e.fun.name, e.args, self.extenv[e.fun.name].ret
                 )
             else:
                 raise ValueError(f"unknown external function: {e.fun.name}")
 
         e1, t1 = self.visit(env, e.fun)
         if types.is_fun(t1):
-            return self.insert_let(
-                env,
-                lambda x: self.insert_let(
-                    env,
-                    lambda *xs: IR("App", x, xs),
-                    [self.visit(env, arg) for arg in e.args],
-                    t1.ret,
-                ),
-                [(e1, t1)],
-                t1.ret,
-            )
+            if isinstance(e1, syntax.Var):
+                return _bind("App", e1.name, e.args, t1.ret)
+            else:
+                x = gen_tmp_id(t1)
+                e2, t2 = _bind("App", x, e.args, t1.ret)
+                return IR("Let", {x: (e1, t1)}, e2), t2
         else:
             raise ValueError(f"unknown function type: {t1}")
 
