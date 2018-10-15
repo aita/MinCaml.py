@@ -4,7 +4,7 @@ import pprint
 
 from . import logger
 from . import id
-from . import parser
+from .parser import parser
 from . import typing
 from . import knorm
 from . import alpha
@@ -26,7 +26,7 @@ def main():
     id.reset()
 
     extenv = {}
-    e = parser.parser.parse(input)
+    e = parser.parse(input)
     typing.typing(e, extenv)
     kform, _ = knorm.normalize(e, extenv)
     pipeline = [alpha.conversion, beta.reduction]

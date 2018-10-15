@@ -90,7 +90,7 @@ class AlphaVisitor:
         return (e[0], find(env, e[1]), [find(env, arg) for arg in e[2]])
 
     def visit_Tuple(self, env, e):
-        return (e[0], [env[name] for name in e[1]])
+        return (e[0], [find(env, name) for name in e[1]])
 
     def visit_LetTuple(self, env, e):
         new_env = env.update({name: gen_id(name) for name, _ in e[1]})

@@ -60,13 +60,6 @@ class KNormalizeVisitor:
             raise ValueError(f"unknown operator '{e.op}'")
 
         return self.insert_let(env, IR_factory(op), [self.visit(env, e.arg)], typ)
-        e1, t1 = self.visit(env, e.arg)
-        if isinstance(e1, syntax.Var):
-            return IR(op, e1.name), typ
-        else:
-            x = gen_tmp_id(t1)
-            e2 = IR(op, x)
-            return IR("Let", (x, t1), e1, e2), typ
 
     def visit_BinaryExp(self, env, e):
         if e.op in ("=", "<="):

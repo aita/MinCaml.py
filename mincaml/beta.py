@@ -99,7 +99,7 @@ class BetaVisitor:
         return (e[0], find(env, e[1]), [find(env, arg) for arg in e[2]])
 
     def visit_Tuple(self, env, e):
-        return (e[0], [env[name] for name in e[1]])
+        return (e[0], [find(env, name) for name in e[1]])
 
     def visit_LetTuple(self, env, e):
         return (e[0], e[1], find(env, e[2]), self.visit(env, e[3]))
