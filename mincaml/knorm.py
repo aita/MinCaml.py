@@ -198,12 +198,8 @@ class KNormalizeVisitor:
             return (
                 self.insert_let(
                     env,
-                    lambda x: self.insert_let(
-                        env,
-                        IR_factory("App", x, flat=False),
-                        [self.visit(env, arg) for arg in e.args],
-                    ),
-                    [(e1, t1)],
+                    lambda x, *ys: ("App", x, ys),
+                    [(e1, t1)] + [self.visit(env, arg) for arg in e.args],
                 ),
                 t1.ret,
             )

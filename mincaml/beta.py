@@ -1,7 +1,6 @@
 from pyrsistent import pmap
 
 from . import logger
-from .knorm import FunDef
 from .util import find
 
 
@@ -86,12 +85,7 @@ class BetaVisitor:
         fundef = e[1]
         return (
             e[0],
-            FunDef(
-                typ=fundef.typ,
-                name=fundef.name,
-                args=fundef.args,
-                body=self.visit(env, fundef.body),
-            ),
+            fundef._replace(body=self.visit(env, fundef.body)),
             self.visit(env, e[2]),
         )
 
