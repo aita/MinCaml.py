@@ -2,12 +2,12 @@ import sys
 import logging
 import pprint
 
+from . import logger
 from . import id
 from . import parser
 from . import typing
 from . import knorm
-from . import logger
-
+from . import alpha
 
 handler = logging.StreamHandler(sys.stderr)
 # formatter = logging.Formatter("%(levelname)s: %(message)s")
@@ -27,7 +27,8 @@ def main():
     extenv = {}
     e = parser.parser.parse(input)
     typing.typing(e, extenv)
-    ir = knorm.normalize(e, extenv)
+    ir, _ = knorm.normalize(e, extenv)
+    ir = alpha.conversion(ir)
     pprint.pprint(ir)
 
 

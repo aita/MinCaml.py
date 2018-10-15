@@ -112,7 +112,7 @@ class KNormalizeVisitor:
             if e.cond.op == "<=":
                 op, typ = "IfLE", types.Int
             elif e.cond.op == "=":
-                op, typ = "IfEQ", types.Int
+                op, typ = "IfEq", types.Int
             else:
                 raise ValueError(f"unknown operator: {e.cond.op}")
 

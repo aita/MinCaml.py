@@ -3,16 +3,24 @@ from . import types
 tmp_cnt = 0
 
 
+def _inc():
+    global tmp_cnt
+    tmp_cnt += 1
+
+
 def reset():
     global tmp_cnt
 
     tmp_cnt = 0
 
 
-def gen_tmp_id(t):
-    global tmp_cnt
+def gen_id(s):
+    _inc()
+    return f"{s}.{tmp_cnt}"
 
-    tmp_cnt += 1
+
+def gen_tmp_id(t):
+    _inc()
     return "T{}{}".format(id_of_typ(t), tmp_cnt)
 
 
