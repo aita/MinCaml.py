@@ -1,6 +1,7 @@
 import ply.lex as lex
 import ply.yacc as yacc
 
+from . import logger
 from . import syntax
 from . import types
 from .id import gen_tmp_id
@@ -113,7 +114,7 @@ def t_comment(t):
 
 # Error handling rule
 def t_error(t):
-    print("Illegal character '%s'" % t.value[0])
+    logger.error("Illegal character '%s'" % t.value[0])
     t.lexer.skip(1)
 
 
@@ -183,29 +184,48 @@ def p_not(p):
 
 def p_uminus(p):
     "exp : MINUS exp %prec prec_unary_minus"
-    if types.is_float(p[2].typ):
+    if isinstance(p[2], syntax.Const) and types.is_float(p[2].typ):
         p[2].value = -p[2].value
         p[0] = p[2]
     else:
         p[0] = syntax.UnaryExp("-", p[2])
 
 
-def p_binary_exp(p):
+def p_fneg(p):
+    "exp : MINUS_DOT exp %prec prec_unary_minus"
+    p[0] = syntax.UnaryExp("-.", p[2])
+
+
+def p_arith_exp(p):
     """exp : exp PLUS exp
            | exp MINUS exp
-           | exp EQUAL exp
-           | exp LESS_GREATER exp
-           | exp LESS exp
-           | exp GREATER exp
-           | exp LESS_EQUAL exp
-           | exp GREATER_EQUAL exp
            | exp PLUS_DOT exp
            | exp MINUS_DOT exp
            | exp AST_DOT exp
            | exp SLASH_DOT exp
     """
-    # 比較演算子の書き換えをこのパスでは行わない(mincamlと異なる挙動)
-    p[0] = syntax.BinaryExp(p[1], p[2], p[3])
+    p[0] = syntax.BinaryExp(p[2], p[1], p[3])
+
+
+def p_cmp_exp(p):
+    """exp : exp EQUAL exp
+           | exp LESS_GREATER exp
+           | exp LESS exp
+           | exp GREATER exp
+           | exp LESS_EQUAL exp
+           | exp GREATER_EQUAL exp
+    """
+    op = p[2]
+    if op in ("=", "<="):
+        p[0] = syntax.BinaryExp(p[2], p[1], p[3])
+    if op == "<>":
+        p[0] = syntax.UnaryExp("not", syntax.BinaryExp("=", p[1], p[3]))
+    if op == "<":
+        p[0] = syntax.UnaryExp("not", syntax.BinaryExp("<=", p[3], p[1]))
+    if op == ">":
+        p[0] = syntax.UnaryExp("not", syntax.BinaryExp("<=", p[1], p[3]))
+    if op == ">=":
+        p[0] = syntax.BinaryExp("<=", p[3], p[1])
 
 
 def p_if(p):
@@ -235,7 +255,7 @@ def p_tuple(p):
 
 def p_let_tuple(p):
     "exp : LET LPAREN pat RPAREN EQUAL exp IN exp"
-    p[0] = syntax.LetTuple(p[3], p[6], p[7])
+    p[0] = syntax.LetTuple(p[3], p[6], p[8])
 
 
 def p_array_put(p):
@@ -299,7 +319,7 @@ def p_pat(p):
 
 
 def p_error(p):
-    print(f"{p.lineno}: syntax error at '{p.value}'")
+    logger.error(f"{p.lineno}: syntax error at '{p.value}'")
 
 
 # Build the lexer and parser

@@ -28,7 +28,7 @@ class UnaryExp:
 
 
 class BinaryExp:
-    def __init__(self, left, op, right):
+    def __init__(self, op, left, right):
         self.op = op
         self.left = left
         self.right = right

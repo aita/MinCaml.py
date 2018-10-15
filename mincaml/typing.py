@@ -59,7 +59,7 @@ class TypingVisitor:
             unify(types.Float, self.visit(env, e.left))
             unify(types.Float, self.visit(env, e.right))
             return types.Float
-        elif op in ("=", "<>", "<=", ">=", "<", ">"):
+        elif op in ("=", "<="):
             unify(self.visit(env, e.left), self.visit(env, e.right))
             return types.Bool
         else:
@@ -84,7 +84,7 @@ class TypingVisitor:
         return self.visit(env, e.body)
 
     def visit_LetTuple(self, env, e):
-        unify(types.Tuple([typ for _, typ in e.pat]), self.visit(env, self.bound))
+        unify(types.Tuple([typ for _, typ in e.pat]), self.visit(env, e.bound))
         return self.visit(env.update({name: typ for name, typ in e.pat}), e.body)
 
     def visit_If(self, env, e):
@@ -95,7 +95,7 @@ class TypingVisitor:
         return t1
 
     def visit_Tuple(self, env, e):
-        return types.Tuple([self.visitor(env, e) for e in e.elems])
+        return types.Tuple([self.visit(env, e) for e in e.elems])
 
     def visit_Array(self, env, e):
         unify(self.visit(env, e.len), types.Int)
@@ -190,27 +190,27 @@ def occurs_check(r1, t2):
 class DerefVisitor:
     def visit(self, e):
         method = "visit_" + e.__class__.__name__
-        visitor = getattr(self, method, self.generic_visit)
-        visitor(e)
-
-    def generic_visit(self, e):
+        if hasattr(self, method):
+            node_visitor = getattr(self, method)
+            node_visitor(e)
         for c in e.children():
             self.visit(c)
 
     def visit_Let(self, e):
         e.typ = deref_typ(e.typ)
-        self.visit(e.bound)
-        self.visit(e.body)
+        # self.visit(e.bound)
+        # self.visit(e.body)
 
     def visit_LetRec(self, e):
         e.fundef.typ = deref_typ(e.fundef.typ)
         e.fundef.args = [(name, deref_typ(arg)) for name, arg in e.fundef.args]
-        self.visit(e.body)
+        # self.visit(e.fundef)
+        # self.visit(e.body)
 
     def visit_LetTuple(self, e):
         e.pat = [(name, deref_typ(t)) for name, t in e.pat]
-        self.visit(e.bound)
-        self.visit(e.body)
+        # self.visit(e.bound)
+        # self.visit(e.body)
 
 
 def deref_typ(t):
@@ -220,11 +220,11 @@ def deref_typ(t):
         return types.Tuple([deref_typ(x) for x in t.elems])
     elif types.is_array(t):
         return types.Array(deref_typ(t.elem))
-    elif types.is_var(t) and t.ref is None:
+    elif types.is_var(t) and t.ref.contents is None:
         logger.warn("uninstantiated type variable detected; assuming int.")
         t.ref.contents = types.Int
         return types.Int
-    elif types.is_var(t) and t.ref is not None:
+    elif types.is_var(t) and t.ref.contents is not None:
         t2 = deref_typ(t.ref.contents)
         t.ref.contents = t2
         return t2
@@ -241,4 +241,7 @@ def typing(e, extenv):
         unify(types.Unit, visitor.visit(pmap(), e))
     except UnifyError:
         raise ValueError("top level does not have type unit")
+
+    for name, t in extenv.items():
+        extenv[name] = deref_typ(t)
     deref_term(e)
