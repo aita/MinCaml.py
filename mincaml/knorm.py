@@ -183,28 +183,13 @@ class KNormalizeVisitor:
         )
 
     def visit_App(self, env, e):
-        def _bind(op, name, args, t):
-            letenv = {}
-            xs = []
-            for arg in args:
-                e1, t1 = self.visit(env, arg)
-                if isinstance(e1, syntax.Var):
-                    xs.append(e1.name)
-                else:
-                    x = gen_tmp_id(t1)
-                    letenv[x] = (e1, t1)
-                    xs.append(x)
-
-            ir = IR(op, name, xs)
-            if len(letenv) > 0:
-                return IR("Let", letenv, ir), t
-            else:
-                return ir, t
-
         if isinstance(e.fun, syntax.Var) and e.fun.name not in env:
             if e.fun.name in self.extenv and types.is_fun(self.extenv[e.fun.name]):
-                return _bind(
-                    "ExtFunApp", e.fun.name, e.args, self.extenv[e.fun.name].ret
+                return self.insert_let(
+                    env,
+                    IR_factory("ExtFunApp", e.fun.name),
+                    [self.visit(env, arg) for arg in e.args],
+                    self.extenv[e.fun.name].ret,
                 )
             else:
                 raise ValueError(f"unknown external function: {e.fun.name}")
@@ -212,7 +197,15 @@ class KNormalizeVisitor:
         e1, t1 = self.visit(env, e.fun)
         if types.is_fun(t1):
             return self.insert_let(
-                env, lambda x: _bind("App", x, e.args, t1.ret), [(e1, t1)], t1.ret
+                env,
+                lambda x: self.insert_let(
+                    env,
+                    IR_factory("App", x),
+                    [self.visit(env, arg) for arg in e.args],
+                    t1.ret,
+                ),
+                [(e1, t1)],
+                t1.ret,
             )
         else:
             raise ValueError(f"unknown function type: {t1}")
