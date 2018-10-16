@@ -131,7 +131,7 @@ class KNormalizeVisitor:
     def visit_Let(self, env, e):
         e1, t1 = self.visit(env, e.bound)
         e2, t2 = self.visit(env.set(e.name, e.typ), e.body)
-        return IR("Let", {e.name: (e1, e.typ)}, e2), t2
+        return IR("Let", (e.name, e.typ), e1, e2), t2
 
     def visit_LetRec(self, env, e):
         env = env.set(e.fundef.name, e.fundef.typ)
@@ -153,7 +153,7 @@ class KNormalizeVisitor:
         e1, t1 = self.visit(env, e.bound)
         e2, t2 = self.visit(env.update(dict(e.pat)), e.body)
         return (
-            self.insert_let(env, IR_factory("LetTuple", e.pat), [(e1, t1), (e2, t2)]),
+            self.insert_let(env, lambda x: ("LetTuple", e.pat, x, e2), [(e1, t1)]),
             t2,
         )
 
@@ -230,21 +230,19 @@ class KNormalizeVisitor:
         )
 
     def insert_let(self, env, factory, exps):
-        letenv = {}
-        args = []
+        letenv, args = [], []
         for (e, t) in exps:
             if isinstance(e, syntax.Var):
                 args.append(e.name)
             else:
                 x = gen_tmp_id(t)
-                letenv[x] = (e, t)
+                letenv.append(((x, t), e))
                 args.append(x)
 
-        ir = factory(*args)
-        if len(letenv) > 0:
-            return IR("Let", letenv, ir)
-        else:
-            return ir
+        e = factory(*args)
+        for (x, t1), e1 in reversed(letenv):
+            e = IR("Let", (x, t1), e1, e)
+        return e
 
 
 def normalize(e, extenv):

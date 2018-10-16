@@ -63,10 +63,14 @@ class AlphaVisitor:
         )
 
     def visit_Let(self, env, e):
-        letenv = {name: gen_id(name) for name in e[1].keys()}
-        e1 = {letenv[name]: (self.visit(env, e_), t) for name, (e_, t) in e[1].items()}
-        e2 = self.visit(env.update(letenv), e[2])
-        return (e[0], e1, e2)
+        (x, t) = e[1]
+        new_x = gen_id(x)
+        return (
+            e[0],
+            (new_x, t),
+            self.visit(env, e[2]),
+            self.visit(env.set(x, new_x), e[3]),
+        )
 
     def visit_Var(self, env, e):
         return (e[0], find(env, e[1]))

@@ -62,21 +62,15 @@ class BetaVisitor:
         )
 
     def visit_Let(self, env, e):
-        letenv = e[1]
-        new_env = env
-        new_letenv = {}
-        for name, (e1, t) in letenv.items():
-            e2 = self.visit(env, e1)
-            if e2[0] == "Var":
-                new_name = e2[1]
-                logger.info(f"beta-reduction {name} = {new_name}.")
-                new_env = new_env.set(name, new_name)
-            else:
-                new_letenv[name] = (e2, t)
-        if len(new_letenv) > 0:
-            return (e[0], new_letenv, self.visit(new_env, e[2]))
+        (x, t), e1, e2 = e[1], e[2], e[3]
+        new_e1 = self.visit(env, e1)
+        if new_e1[0] == "Var":
+            y = new_e1[1]
+            logger.info(f"beta-reduction {x} = {y}.")
+            return self.visit(env.set(x, y), new_e1)
         else:
-            return self.visit(new_env, e[2])
+            new_e2 = self.visit(env, e2)
+            return (e[0], (x, t), new_e1, new_e2)
 
     def visit_Var(self, env, e):
         return (e[0], find(env, e[1]))
