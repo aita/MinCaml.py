@@ -67,7 +67,7 @@ class Visitor:
         if new_e1[0] == "Var":
             y = new_e1[1]
             logger.info(f"beta-reduction {x} = {y}.")
-            return self.visit(env.set(x, y), new_e1)
+            return self.visit(env.set(x, y), e2)
         else:
             new_e2 = self.visit(env, e2)
             return (e[0], (x, t), new_e1, new_e2)
