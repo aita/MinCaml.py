@@ -118,5 +118,7 @@ class Visitor:
         return (e[0], e[1], [find(env, arg) for arg in e[2]])
 
 
-def conversion(e):
-    return Visitor().visit(pmap(), e)
+def conversion(e, env=None):
+    if env is None:
+        env = pmap()
+    return Visitor().visit(env, e)

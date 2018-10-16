@@ -1,6 +1,7 @@
 import sys
 import logging
 import pprint
+import functools
 
 from . import logger
 from . import id
@@ -10,6 +11,7 @@ from . import knorm
 from . import alpha
 from . import beta
 from . import assoc
+from . import inline
 
 
 handler = logging.StreamHandler(sys.stderr)
@@ -31,7 +33,12 @@ def main():
     e = parser.parse(input)
     typing.typing(e, extenv)
     kform, _ = knorm.normalize(e, extenv)
-    pipeline = [alpha.conversion, beta.reduction, assoc.nested_let_reduction]
+    pipeline = [
+        alpha.conversion,
+        beta.reduction,
+        assoc.nested_let_reduction,
+        functools.partial(inline.expand, 100),
+    ]
     for f in pipeline:
         kform = f(kform)
     pprint.pprint(kform)
