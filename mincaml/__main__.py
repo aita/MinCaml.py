@@ -24,10 +24,10 @@ def main():
     assert len(sys.argv) == 2, "usage: mincaml FILENAME"
     fname = sys.argv[1]
 
+    id.reset()
+
     with open(fname) as fp:
         input = fp.read()
-
-    id.reset()
 
     extenv = {}
     e = parser.parse(input)

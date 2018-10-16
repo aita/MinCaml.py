@@ -10,7 +10,7 @@ class UnifyError(Exception):
         super().__init__(f"cannot unify {t1} and {t2}")
 
 
-class TypingVisitor:
+class Visitor:
     "抽象構文木をたどり型推論を行うVisitorクラス"
 
     def __init__(self, extenv):
@@ -198,19 +198,13 @@ class DerefVisitor:
 
     def visit_Let(self, e):
         e.typ = deref_typ(e.typ)
-        # self.visit(e.bound)
-        # self.visit(e.body)
 
     def visit_LetRec(self, e):
         e.fundef.typ = deref_typ(e.fundef.typ)
         e.fundef.args = [(name, deref_typ(arg)) for name, arg in e.fundef.args]
-        # self.visit(e.fundef)
-        # self.visit(e.body)
 
     def visit_LetTuple(self, e):
         e.pat = [(name, deref_typ(t)) for name, t in e.pat]
-        # self.visit(e.bound)
-        # self.visit(e.body)
 
 
 def deref_typ(t):
@@ -236,7 +230,7 @@ def deref_term(e):
 
 
 def typing(e, extenv):
-    visitor = TypingVisitor(extenv)
+    visitor = Visitor(extenv)
     try:
         unify(types.Unit, visitor.visit(pmap(), e))
     except UnifyError:

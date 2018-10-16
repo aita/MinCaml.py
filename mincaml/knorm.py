@@ -6,24 +6,20 @@ from . import syntax
 from .id import gen_tmp_id
 
 
-def IR(*args):
-    return args
-
-
-def IR_factory(op, *options, flat=True):
-    def _ir(*args):
-        if flat:
-            return IR(op, *options, *args)
-        else:
-            return IR(op, *options, args)
-
-    return _ir
-
-
 FunDef = namedtuple("FunDef", "typ name args body")
 
 
-def insert_let(env, factory, exps):
+def factory(op, *options, flat=True):
+    def _factory(*args):
+        if flat:
+            return (op, *options, *args)
+        else:
+            return (op, *options, args)
+
+    return _factory
+
+
+def insert_let(env, f, exps):
     letenv, args = [], []
     for (e, t) in exps:
         if isinstance(e, syntax.Var):
@@ -33,9 +29,9 @@ def insert_let(env, factory, exps):
             letenv.append(((x, t), e))
             args.append(x)
 
-    e = factory(*args)
+    e = f(*args)
     for (x, t1), e1 in reversed(letenv):
-        e = IR("Let", (x, t1), e1, e)
+        e = ("Let", (x, t1), e1, e)
     return e
 
 
@@ -50,13 +46,13 @@ class Visitor:
 
     def visit_Const(self, env, e):
         if e.typ == types.Unit:
-            return IR("Unit"), types.Unit
+            return ("Unit",), types.Unit
         elif e.typ == types.Bool:
-            return IR("Int", 1 if e.value else 0), types.Int
+            return ("Int", 1 if e.value else 0), types.Int
         elif e.typ == types.Int:
-            return IR("Int", e.value), types.Int
+            return ("Int", e.value), types.Int
         elif e.typ == types.Float:
-            return IR("Float", e.value), types.Float
+            return ("Float", e.value), types.Float
         else:
             raise ValueError(f"unknown constant type: {e.typ}")
 
@@ -76,7 +72,7 @@ class Visitor:
         else:
             raise ValueError(f"unknown unary operator '{e.op}'")
 
-        return insert_let(env, IR_factory(op), [self.visit(env, e.arg)]), typ
+        return insert_let(env, factory(op), [self.visit(env, e.arg)]), typ
 
     def visit_BinaryExp(self, env, e):
         if e.op in ("=", "<="):
@@ -104,7 +100,7 @@ class Visitor:
 
         return (
             insert_let(
-                env, IR_factory(op), [self.visit(env, e.left), self.visit(env, e.right)]
+                env, factory(op), [self.visit(env, e.left), self.visit(env, e.right)]
             ),
             t,
         )
@@ -127,7 +123,7 @@ class Visitor:
             return (
                 insert_let(
                     env,
-                    lambda x, y: IR(op, x, y, e3, e4),
+                    lambda x, y: (op, x, y, e3, e4),
                     [self.visit(env, e.cond.left), self.visit(env, e.cond.right)],
                 ),
                 t3,
@@ -145,36 +141,36 @@ class Visitor:
     def visit_Let(self, env, e):
         e1, t1 = self.visit(env, e.bound)
         e2, t2 = self.visit(env.set(e.name, e.typ), e.body)
-        return IR("Let", (e.name, e.typ), e1, e2), t2
+        return ("Let", (e.name, e.typ), e1, e2), t2
 
     def visit_LetRec(self, env, e):
         env = env.set(e.fundef.name, e.fundef.typ)
         e2, t2 = self.visit(env, e.body)
         e1, t1 = self.visit(env.update(dict(e.fundef.args)), e.fundef.body)
         return (
-            IR("LetRec", FunDef(e.fundef.typ, e.fundef.name, e.fundef.args, e1), e2),
+            ("LetRec", FunDef(e.fundef.typ, e.fundef.name, e.fundef.args, e1), e2),
             t2,
         )
 
     def visit_Tuple(self, env, e):
         xs = [self.visit(env, e) for e in e.elems]
         return (
-            insert_let(env, IR_factory("Tuple", flat=False), xs),
+            insert_let(env, factory("Tuple", flat=False), xs),
             types.Tuple([t for _, t in xs]),
         )
 
     def visit_LetTuple(self, env, e):
         e1, t1 = self.visit(env, e.bound)
         e2, t2 = self.visit(env.update(dict(e.pat)), e.body)
-        return (insert_let(env, lambda x: ("LetTuple", e.pat, x, e2), [(e1, t1)]), t2)
+        return insert_let(env, lambda x: ("LetTuple", e.pat, x, e2), [(e1, t1)]), t2
 
     def visit_Var(self, env, e):
         if e.name in env:
-            return IR("Var", e.name), env[e.name]
+            return ("Var", e.name), env[e.name]
         if e.name in self.extenv:
             t = self.extenv[e.name]
             if types.is_array(t):
-                return IR("ExtArray", e.name), t
+                return ("ExtArray", e.name), t
         raise ValueError(f"external variable {e.name} does not have an array type")
 
     def visit_Array(self, env, e):
@@ -183,7 +179,7 @@ class Visitor:
         ctor = "create_float_array" if types.is_float(t2) else "create_array"
         return (
             insert_let(
-                env, IR_factory("ExtFunApp", ctor, flat=False), [(e1, t1), (e2, t2)]
+                env, factory("ExtFunApp", ctor, flat=False), [(e1, t1), (e2, t2)]
             ),
             types.Array(t2),
         )
@@ -194,7 +190,7 @@ class Visitor:
                 return (
                     insert_let(
                         env,
-                        IR_factory("ExtFunApp", e.fun.name, flat=False),
+                        factory("ExtFunApp", e.fun.name, flat=False),
                         [self.visit(env, arg) for arg in e.args],
                     ),
                     self.extenv[e.fun.name].ret,
@@ -220,7 +216,7 @@ class Visitor:
         if not types.is_array(t1):
             raise ValueError(f"cannot get from {t1}")
         return (
-            insert_let(env, IR_factory("Get"), [(e1, t1), self.visit(env, e.index)]),
+            insert_let(env, factory("Get"), [(e1, t1), self.visit(env, e.index)]),
             t1.elem,
         )
 
@@ -228,7 +224,7 @@ class Visitor:
         return (
             insert_let(
                 env,
-                IR_factory("Put"),
+                factory("Put"),
                 [
                     self.visit(env, e.array),
                     self.visit(env, e.index),
