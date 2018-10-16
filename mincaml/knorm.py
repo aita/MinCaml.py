@@ -23,9 +23,7 @@ def IR_factory(op, *options, flat=True):
 FunDef = namedtuple("FunDef", "typ name args body")
 
 
-class KNormalizeVisitor:
-    "K正規化を行うVisitor"
-
+class Visitor:
     def __init__(self, extenv):
         self.extenv = extenv
 
@@ -246,4 +244,4 @@ class KNormalizeVisitor:
 
 
 def normalize(e, extenv):
-    return KNormalizeVisitor(extenv).visit(pmap(), e)
+    return Visitor(extenv).visit(pmap(), e)

@@ -5,7 +5,7 @@ from .knorm import FunDef
 from .util import find
 
 
-class AlphaVisitor:
+class Visitor:
     def visit(self, env, e):
         method = "visit_" + e[0]
         visitor = getattr(self, method)
@@ -119,4 +119,4 @@ class AlphaVisitor:
 
 
 def conversion(e):
-    return AlphaVisitor().visit(pmap(), e)
+    return Visitor().visit(pmap(), e)

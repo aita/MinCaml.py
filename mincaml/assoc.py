@@ -1,4 +1,4 @@
-class AssocVisitor:
+class Visitor:
     def visit(self, e):
         method = "visit_" + e[0]
         if hasattr(self, method):
@@ -37,4 +37,4 @@ class AssocVisitor:
 
 
 def nested_let_reduction(e):
-    return AssocVisitor().visit(e)
+    return Visitor().visit(e)

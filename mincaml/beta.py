@@ -4,7 +4,7 @@ from . import logger
 from .util import find
 
 
-class BetaVisitor:
+class Visitor:
     def visit(self, env, e):
         method = "visit_" + e[0]
         visitor = getattr(self, method)
@@ -106,4 +106,4 @@ class BetaVisitor:
 
 
 def reduction(e):
-    return BetaVisitor().visit(pmap(), e)
+    return Visitor().visit(pmap(), e)
