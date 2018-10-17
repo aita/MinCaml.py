@@ -63,7 +63,7 @@ class Visitor:
         return alpha.conversion(e, pmap(new_env))
 
     def visit_LetTuple(self, env, e):
-        return (e[0], e[1], self.visit(env, e[2]))
+        return (e[0], e[1], e[2], self.visit(env, e[3]))
 
 
 def expand(threshold, e):

@@ -12,6 +12,7 @@ from . import alpha
 from . import beta
 from . import assoc
 from . import inline
+from . import const_fold
 
 
 handler = logging.StreamHandler(sys.stderr)
@@ -23,6 +24,8 @@ logger.addHandler(handler)
 def main():
     assert len(sys.argv) == 2, "usage: mincaml FILENAME"
     fname = sys.argv[1]
+
+    inlining_threthold = 10
 
     id.reset()
 
@@ -37,7 +40,8 @@ def main():
         alpha.conversion,
         beta.reduction,
         assoc.nested_let_reduction,
-        functools.partial(inline.expand, 100),
+        functools.partial(inline.expand, inlining_threthold),
+        const_fold.constant_folding,
     ]
     for f in pipeline:
         kform = f(kform)
