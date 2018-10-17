@@ -19,6 +19,39 @@ def factory(op, *options, flat=True):
     return _factory
 
 
+def free_variables(e):
+    name = e[0]
+    if name in ("Unit", "Int", "Float", "ExtArray"):
+        return set()
+    elif name in ("Var", "Neg", "FNeg"):
+        return {e[1]}
+    elif name in ("Add", "Sub", "FAdd", "FSub", "FMul", "FDiv", "Get"):
+        return {e[1], e[2]}
+    elif name in ("IfEq", "IfLE"):
+        x, y, e1, e2 = e[1:]
+        return {x, y} | free_variables(e1) | free_variables(e2)
+    elif name == "Let":
+        (x, t), e1, e2 = e[1:]
+        return free_variables(e1) | free_variables(e2) - {x}
+    elif name == "LetRec":
+        fundef, e2 = e[1], e[2]
+        zs = free_variables(fundef.body) - {y for y, _ in fundef.args}
+        return zs | free_variables(e2) - {fundef.name}
+    elif name == "App":
+        return {e[1]} | set(e[2])
+    elif name == "Tuple":
+        return set(e[1])
+    elif name == "ExtFunApp":
+        return set(e[2])
+    elif name == "Put":
+        return set(e[1:])
+    elif name == "LetTuple":
+        xs, y, e = e[1:]
+        return {y} + free_variables(e) - {x for x, _ in xs}
+    else:
+        raise ValueError(f"unknown expression: {name}")
+
+
 def insert_let(env, f, exps):
     letenv, args = [], []
     for (e, t) in exps:

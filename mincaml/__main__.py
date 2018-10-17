@@ -13,6 +13,7 @@ from . import beta
 from . import assoc
 from . import inline
 from . import const_fold
+from . import elim
 
 
 handler = logging.StreamHandler(sys.stderr)
@@ -25,7 +26,8 @@ def main():
     assert len(sys.argv) == 2, "usage: mincaml FILENAME"
     fname = sys.argv[1]
 
-    inlining_threthold = 10
+    inlining_threthold = 0
+    niter = 1000
 
     id.reset()
 
@@ -35,16 +37,24 @@ def main():
     extenv = {}
     ast = parser.parse(input)
     typing.typing(ast, extenv)
-    kform = knorm.normalize(ast, extenv)
-    pipeline = [
-        alpha.conversion,
+    kform = alpha.conversion(knorm.normalize(ast, extenv))
+    optimizer = [
         beta.reduction,
         assoc.nested_let_reduction,
         functools.partial(inline.expand, inlining_threthold),
         const_fold.constant_folding,
+        elim.unused_definitions_elimination,
     ]
-    for f in pipeline:
-        kform = f(kform)
+
+    for i in range(niter):
+        logger.info(f"iteration {i+1}.")
+        new_kform = kform
+        for f in optimizer:
+            new_kform = f(new_kform)
+        if new_kform == kform:
+            break
+        kform = new_kform
+
     pprint.pprint(kform)
 
 
