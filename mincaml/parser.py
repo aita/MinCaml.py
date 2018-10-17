@@ -121,7 +121,8 @@ def t_comment(t):
 
 # Error handling rule
 def t_error(t):
-    logger.error("Illegal character '%s'" % t.value[0])
+    c = t.value[0]
+    logger.error(f"Illegal character {repr(c)}")
     t.lexer.skip(1)
 
 
