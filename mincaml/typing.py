@@ -187,26 +187,6 @@ def occurs_check(r1, t2):
     return False
 
 
-class DerefVisitor:
-    def visit(self, e):
-        method = "visit_" + e.__class__.__name__
-        if hasattr(self, method):
-            node_visitor = getattr(self, method)
-            node_visitor(e)
-        for c in e.children():
-            self.visit(c)
-
-    def visit_Let(self, e):
-        e.typ = deref_typ(e.typ)
-
-    def visit_LetRec(self, e):
-        e.fundef.typ = deref_typ(e.fundef.typ)
-        e.fundef.args = [(name, deref_typ(arg)) for name, arg in e.fundef.args]
-
-    def visit_LetTuple(self, e):
-        e.pat = [(name, deref_typ(t)) for name, t in e.pat]
-
-
 def deref_typ(t):
     if types.is_fun(t):
         return types.Fun([deref_typ(x) for x in t.args], deref_typ(t.ret))
@@ -226,7 +206,17 @@ def deref_typ(t):
 
 
 def deref_term(e):
-    DerefVisitor().visit(e)
+    name = e.__class__.__name__
+    if name == "Let":
+        e.typ = deref_typ(e.typ)
+    elif name == "LetRec":
+        e.fundef.typ = deref_typ(e.fundef.typ)
+        e.fundef.args = [(name, deref_typ(arg)) for name, arg in e.fundef.args]
+    elif name == "LetTuple":
+        e.pat = [(name, deref_typ(t)) for name, t in e.pat]
+
+    for c in e.children():
+        deref_term(c)
 
 
 def typing(e, extenv):
