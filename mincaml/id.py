@@ -29,7 +29,7 @@ def id_of_typ(t):
     elif types.is_bool(t):
         return "b"
     elif types.is_int(t):
-        return "d"
+        return "i"
     elif types.is_float(t):
         return "d"
     elif types.is_fun(t):
