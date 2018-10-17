@@ -33,9 +33,9 @@ def main():
         input = fp.read()
 
     extenv = {}
-    e = parser.parse(input)
-    typing.typing(e, extenv)
-    kform, _ = knorm.normalize(e, extenv)
+    ast = parser.parse(input)
+    typing.typing(ast, extenv)
+    kform = knorm.normalize(ast, extenv)
     pipeline = [
         alpha.conversion,
         beta.reduction,

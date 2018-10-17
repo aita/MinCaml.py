@@ -235,5 +235,6 @@ class Visitor:
         )
 
 
-def normalize(e, extenv):
-    return Visitor(extenv).visit(pmap(), e)
+def normalize(ast, extenv):
+    kform, _ = Visitor(extenv).visit(pmap(), ast)
+    return kform
