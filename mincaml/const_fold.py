@@ -141,7 +141,6 @@ class Visitor:
         )
 
     def visit_LetTuple(self, env, e):
-        print(e)
         xts, y, e1 = e[1:]
         if is_tuple(env, y):
             new_e1 = self.visit(env, e1)
