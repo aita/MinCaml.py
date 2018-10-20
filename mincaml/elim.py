@@ -59,7 +59,7 @@ class Visitor:
         xs = [x for x, _ in xts]
         new_e1 = self.visit(e1)
         live = free_variables(new_e1)
-        if any(x in live for x in xts):
+        if any(x in live for x in xs):
             return (e[0], xts, y, new_e1)
         else:
             logger.info(f"eliminating variables {xs}.")
