@@ -283,7 +283,7 @@ def p_array_create(p):
 
 def p_funcdef(p):
     "fundef : IDENT formal_args EQUAL exp"
-    p[0] = syntax.FunDef(p[1], p[2], p[4])
+    p[0] = syntax.Fundef(p[1], p[2], p[4])
 
 
 def p_formal_args(p):

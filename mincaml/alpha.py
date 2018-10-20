@@ -1,7 +1,7 @@
 from pyrsistent import pmap
 
 from .id import gen_id
-from .knorm import FunDef
+from .knorm import Fundef
 from .util import find
 
 
@@ -81,7 +81,7 @@ class Visitor:
         new_env2 = new_env1.update({name: gen_id(name) for name, _ in fundef.args})
         return (
             e[0],
-            FunDef(
+            Fundef(
                 typ=fundef.typ,
                 name=new_env1[fundef.name],
                 args=[(new_env2[name], t) for name, t in fundef.args],

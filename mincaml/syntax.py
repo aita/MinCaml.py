@@ -57,7 +57,7 @@ class LetRec:
         return [self.fundef, self.body]
 
 
-class FunDef:
+class Fundef:
     def __init__(self, name, args, body):
         self.typ = types.Var()
         self.name = name

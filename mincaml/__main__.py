@@ -14,6 +14,7 @@ from . import assoc
 from . import inline
 from . import const_fold
 from . import elim
+from . import closure
 
 
 handler = logging.StreamHandler(sys.stderr)
@@ -37,7 +38,8 @@ def main():
     extenv = {}
     ast = parser.parse(input)
     typing.typing(ast, extenv)
-    kform = alpha.conversion(knorm.normalize(ast, extenv))
+    e = alpha.conversion(knorm.normalize(ast, extenv))
+
     optimizer = [
         beta.reduction,
         assoc.nested_let_reduction,
@@ -45,17 +47,16 @@ def main():
         const_fold.constant_folding,
         elim.unused_definitions_elimination,
     ]
-
     for i in range(niter):
         logger.info(f"iteration {i+1}.")
-        new_kform = kform
+        new_e = e
         for f in optimizer:
-            new_kform = f(new_kform)
-        if new_kform == kform:
+            new_e = f(new_e)
+        if new_e == e:
             break
-        kform = new_kform
-
-    pprint.pprint(kform)
+        e = new_e
+    e = closure.conversion(e)
+    pprint.pprint(e)
 
 
 if __name__ == "__main__":

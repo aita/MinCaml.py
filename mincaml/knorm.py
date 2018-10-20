@@ -6,7 +6,7 @@ from . import syntax
 from .id import gen_tmp_id
 
 
-FunDef = namedtuple("FunDef", "typ name args body")
+Fundef = namedtuple("Fundef", "name typ args body")
 
 
 def factory(op, *options, flat=True):
@@ -32,11 +32,11 @@ def free_variables(e):
         return {x, y} | free_variables(e1) | free_variables(e2)
     elif name == "Let":
         (x, t), e1, e2 = e[1:]
-        return free_variables(e1) | free_variables(e2) - {x}
+        return free_variables(e1) | (free_variables(e2) - {x})
     elif name == "LetRec":
         fundef, e2 = e[1], e[2]
         zs = free_variables(fundef.body) - {y for y, _ in fundef.args}
-        return zs | free_variables(e2) - {fundef.name}
+        return (zs | free_variables(e2)) - {fundef.name}
     elif name == "App":
         return {e[1]} | set(e[2])
     elif name == "Tuple":
@@ -47,7 +47,7 @@ def free_variables(e):
         return set(e[1:])
     elif name == "LetTuple":
         xs, y, e = e[1:]
-        return {y} + free_variables(e) - {x for x, _ in xs}
+        return {y} | (free_variables(e) - {x for x, _ in xs})
     else:
         raise ValueError(f"unknown expression: {name}")
 
@@ -181,7 +181,7 @@ class Visitor:
         e2, t2 = self.visit(env, e.body)
         e1, t1 = self.visit(env.update(dict(e.fundef.args)), e.fundef.body)
         return (
-            ("LetRec", FunDef(e.fundef.typ, e.fundef.name, e.fundef.args, e1), e2),
+            ("LetRec", Fundef(e.fundef.name, e.fundef.typ, e.fundef.args, e1), e2),
             t2,
         )
 
