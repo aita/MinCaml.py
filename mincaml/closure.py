@@ -72,27 +72,30 @@ class Visitor:
 
     def visit_LetRec(self, env, known, e):
         # 関数定義let rec x y1 ... yn = e1 in e2の場合は、
-        # xに自由変数がない(closureを介さずdirectに呼び出せる)
-        # と仮定し、knownに追加してe1をクロージャ変換してみる
+        # xが自由変数を含まないと仮定して、クロージャー変換を行う
         (x, t, yts, e1), e2 = e[1], e[2]
         toplevel_backup = self.toplevel[:]
         new_env = env.set(x, t)
-        new_known = known | {x}
+        new_known = known | {x}  # knownにxを追加する
         new_e1 = self.visit(new_env.update(dict(yts)), new_known, e1)
-        # 本当に自由変数がなかったか、変換結果e1'を確認する
-        # 注意: e1'にx自身が変数として出現する場合はclosureが必要
+        # 自由変数がなかったか、new_e1を確認する
+        # NOTE: new_e1にx自身が変数として出現する場合はclosureが必要
         zs = free_variables(new_e1) - {y for y, _ in yts}
         if len(zs) > 0:
-            # 駄目だったら状態(toplevelの値)を戻して、クロージャ変換をやり直す
+            # NOTE: new_e1に自由変数が含まれているので、toplevelを復元してクロージャー変換をやり直す
             logger.info(f"free variable(s) {zs} found in function {x}.")
             logger.info(f"function {x} cannot be directly applied in fact.")
             self.toplevel = toplevel_backup
+            new_known = known
             new_e1 = self.visit(env.update(dict(yts)), known, e1)
+        # xをtoplevelに追加する
         zs = free_variables(new_e1) - ({x} | {y for y, _ in yts})
         zts = [(z, new_env[z]) for z in zs]
         self.toplevel.append(Fundef(x, t, yts, zts, new_e1))
+        # e2のクロージャー変換を行う
         new_e2 = self.visit(new_env, new_known, e2)
         if x in free_variables(new_e2):
+            # new_e2にxが変数として出現するので、クロージャーを生成する
             return ("MakeCls", (x, t), Closure(x, zs), new_e2)
         else:
             logger.info(f"eliminating closure(s) {x}.")
