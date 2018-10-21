@@ -3,15 +3,16 @@ from .knorm import free_variables
 
 
 def effect(e):
+    "eに副作用があるか判定"
     name = e[0]
     if name == "Let":
-        return effect(e[1]) or effect(e[2])
-    elif name in ("IfEq", "IfLE"):
         return effect(e[2]) or effect(e[3])
+    elif name in ("IfEq", "IfLE"):
+        return effect(e[3]) or effect(e[4])
     elif name == "LetRec":
-        return effect(e[1])
-    elif name == "LetTuple":
         return effect(e[2])
+    elif name == "LetTuple":
+        return effect(e[3])
     elif name in ("App", "Put", "ExtFunApp"):
         return True
     else:
