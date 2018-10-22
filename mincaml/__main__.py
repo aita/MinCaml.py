@@ -17,23 +17,13 @@ from . import elim
 from . import closure
 from .x86 import virtual, simm
 
+
 handler = logging.StreamHandler(sys.stderr)
-# formatter = logging.Formatter("%(levelname)s: %(message)s")
-# handler.setFormatter(formatter)
 logger.addHandler(handler)
 
 
-def main():
-    assert len(sys.argv) == 2, "usage: mincaml FILENAME"
-    fname = sys.argv[1]
-
-    inlining_threthold = 0
-    niter = 1000
-
+def compile(input, inlining_threthold, niter):
     id.reset()
-
-    with open(fname) as fp:
-        input = fp.read()
 
     extenv = {}
     ast = parser.parse(input)
@@ -60,6 +50,19 @@ def main():
     prog = e
     for f in pipelines:
         prog = f(prog)
+    return prog
+
+
+def main():
+    assert len(sys.argv) == 2, "usage: mincaml FILENAME"
+    fname = sys.argv[1]
+
+    inlining_threthold = 0
+    niter = 1000
+
+    with open(fname) as fp:
+        input = fp.read()
+    prog = compile(input, inlining_threthold, niter)
     pprint.pprint(prog)
 
 
