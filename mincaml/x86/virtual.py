@@ -244,7 +244,7 @@ class Visitor:
         return Ans("SetL", "min_caml_" + e[1])
 
 
-def gen_funcdef(visitor, closure):
+def gen_fundef(visitor, closure):
     "関数の仮想マシンコード生成"
     x, t, yts, zts, e = closure
     int_lst, float_lst = separate(yts)
@@ -265,6 +265,6 @@ def gen_funcdef(visitor, closure):
 def generate(prog):
     fundefs, e = prog
     visitor = Visitor()
-    fundefs = [gen_funcdef(visitor, f) for f in fundefs]
+    fundefs = [gen_fundef(visitor, f) for f in fundefs]
     e = visitor.visit(pmap(), e)
     return visitor.data, fundefs, e

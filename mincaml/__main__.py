@@ -15,7 +15,7 @@ from . import inline
 from . import const_fold
 from . import elim
 from . import closure
-from .x86 import virtual
+from .x86 import virtual, simm
 
 handler = logging.StreamHandler(sys.stderr)
 # formatter = logging.Formatter("%(levelname)s: %(message)s")
@@ -55,8 +55,11 @@ def main():
         if new_e == e:
             break
         e = new_e
-    prog = closure.conversion(e)
-    prog = virtual.generate(prog)
+
+    pipelines = [closure.conversion, virtual.generate, simm.optimize]
+    prog = e
+    for f in pipelines:
+        prog = f(prog)
     pprint.pprint(prog)
 
 
